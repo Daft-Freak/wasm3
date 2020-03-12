@@ -1,0 +1,4 @@
+assets.cpp:
+  test.wasm:
+    name: test_wasm
+    type: raw/binary 
