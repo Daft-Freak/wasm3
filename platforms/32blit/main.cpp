@@ -99,12 +99,12 @@ void init()
     mod->link_optional<Surface_triangle>("*", "Surface_triangle");
     mod->link_optional<Surface_watermark>("*", "Surface_watermark");
 
-    renderFn = new wasm3::function(runtime->find_function("_Z6renderj"));
-    updateFn = new wasm3::function(runtime->find_function("_Z6updatej"));
+    renderFn = new wasm3::function(runtime->find_function("render"));
+    updateFn = new wasm3::function(runtime->find_function("update"));
 
     blit::set_screen_mode(blit::ScreenMode::hires);
 
-    runtime->find_function("_Z4initv").call<int>();
+    runtime->find_function("init").call<int>();
 
     // profiler
     profiler.set_display_size(blit::screen.bounds.w, blit::screen.bounds.h);
