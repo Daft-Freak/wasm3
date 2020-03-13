@@ -73,6 +73,7 @@ wasm3::runtime *runtime;
 wasm3::module *mod;
 
 wasm3::function *renderFn;
+wasm3::function *updateFn;
 
 void init()
 {
@@ -99,8 +100,11 @@ void init()
     mod->link_optional<Surface_watermark>("*", "Surface_watermark");
 
     renderFn = new wasm3::function(runtime->find_function("_Z6renderj"));
+    updateFn = new wasm3::function(runtime->find_function("_Z6updatej"));
 
     blit::set_screen_mode(blit::ScreenMode::hires);
+
+    runtime->find_function("_Z4initv").call<int>();
 
     // profiler
     profiler.set_display_size(blit::screen.bounds.w, blit::screen.bounds.h);
@@ -120,6 +124,8 @@ void init()
 void update(uint32_t time)
 {
     blit::ScopedProfilerProbe scopedProbe(profilerUpdateProbe);
+
+    updateFn->call<int>(time);
 }
 
 void render(uint32_t time)
