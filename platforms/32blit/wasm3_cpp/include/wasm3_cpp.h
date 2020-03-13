@@ -44,6 +44,9 @@ namespace wasm3 {
         };
         template<typename T> struct m3_type_to_sig;
         template<> struct m3_type_to_sig<i32> : m3_sig<'i'> {};
+#ifdef TARGET_32BLIT_HW // since int32_t == long
+        template<> struct m3_type_to_sig<int> : m3_sig<'i'> {};
+#endif
         template<> struct m3_type_to_sig<i64> : m3_sig<'I'> {};
         template<> struct m3_type_to_sig<f32> : m3_sig<'f'> {};
         template<> struct m3_type_to_sig<f64> : m3_sig<'F'> {};
