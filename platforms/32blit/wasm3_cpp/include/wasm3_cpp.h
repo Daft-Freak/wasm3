@@ -133,6 +133,9 @@ namespace wasm3 {
 
     /** @cond */
     namespace detail {
+#ifdef NO_DEFINITIONS
+        void check_error(M3Result err);
+#else
         void check_error(M3Result err) {
 #ifndef TARGET_32BLIT_HW
             if (err != m3Err_none) {
@@ -140,6 +143,7 @@ namespace wasm3 {
             }
 #endif
         }
+#endif
     } // namespace detail
     /** @endcond */
 
@@ -370,6 +374,7 @@ namespace wasm3 {
         M3Function *m_func = nullptr;
     };
 
+#ifdef NO_DEFINITIONS
     runtime environment::new_runtime(size_t stack_size_bytes) {
         return runtime(m_env, stack_size_bytes);
     }
@@ -389,6 +394,7 @@ namespace wasm3 {
     function runtime::find_function(const char *name) {
         return function(m_runtime, name);
     }
+#endif
 
     template<auto func>
     void module::link(const char *module, const char *function) {
