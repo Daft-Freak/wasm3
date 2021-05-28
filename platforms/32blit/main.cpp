@@ -70,7 +70,7 @@ void Surface_watermark(int32_t _this) {
 
 wasm3::environment env;
 wasm3::runtime *runtime;
-wasm3::module *mod;
+wasm3::module *mod = nullptr;
 
 wasm3::function *renderFn;
 wasm3::function *updateFn;
@@ -78,7 +78,23 @@ wasm3::function *updateFn;
 void init()
 {
     runtime = new wasm3::runtime(env.new_runtime(1024));
-    mod = new wasm3::module(env.parse_module(test_wasm, test_wasm_length));
+
+    std::vector<uint8_t> file_data;
+
+    auto launch_path = blit::get_launch_path();
+    if(launch_path)
+    {
+        blit::File file(launch_path);
+        file_data.resize(file.get_length());
+
+        if(file.read(0, file_data.size(), reinterpret_cast<char *>(file_data.data())) == file_data.size())
+            mod = new wasm3::module(env.parse_module(file_data.data(), file_data.size()));
+    }
+
+    // fallback
+    if(!mod)
+        mod = new wasm3::module(env.parse_module(test_wasm, test_wasm_length));
+
     runtime->load(*mod);
 
     // surface
