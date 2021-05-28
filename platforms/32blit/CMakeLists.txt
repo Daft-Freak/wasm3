@@ -3,8 +3,7 @@ project(blit_wasm)
 
 set(target ${CMAKE_PROJECT_NAME})
 
-set(32BLIT_PATH "../" CACHE PATH "Path to 32blit.cmake")
-include(${32BLIT_PATH}/32blit.cmake)
+find_package(32BLIT CONFIG REQUIRED PATHS ../32blit-sdk)
 
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../source ${CMAKE_BINARY_DIR}/m3)
 
