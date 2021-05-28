@@ -68,6 +68,12 @@ void Surface_watermark(int32_t _this) {
   surface_ptrs.at(_this)->watermark();
 }
 
+// abort
+void wasm_abort(void *message, void *file_name, int32_t line_number, int32_t column_number) {
+    // do something
+    blit::debugf("Abort!\n");
+}
+
 wasm3::environment env;
 wasm3::runtime *runtime;
 wasm3::module *mod = nullptr;
@@ -96,6 +102,8 @@ void init()
         mod = new wasm3::module(env.parse_module(test_wasm, test_wasm_length));
 
     runtime->load(*mod);
+
+    mod->link_optional<wasm_abort>("env", "abort");
 
     // surface
     surface_ptrs.emplace(1, &blit::screen);
