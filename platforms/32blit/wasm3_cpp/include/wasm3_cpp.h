@@ -271,6 +271,8 @@ namespace wasm3 {
         template<typename Func>
         void link_optional(const char *module, const char *function_name, Func *function);
 
+        //
+        IM3Module get() {return m_module.get();}
 
     protected:
         friend class environment;
