@@ -46,7 +46,7 @@ void init()
 
     runtime->load(*mod);
 
-    mod->link_optional<wasm_abort>("env", "abort");
+    mod->link_optional("env", "abort", wasm_abort);
 
     link_blit_bindings(mod);
 
