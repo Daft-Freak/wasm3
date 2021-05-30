@@ -5,6 +5,34 @@
 #include "32blit.hpp"
 
 // partially auto-generated
+#ifdef TARGET_32BLIT_HW
+static blit::Font *get_font(int32_t ptr) {
+  return reinterpret_cast<blit::Font *>(ptr);
+}
+
+static int32_t get_wasm_pointer(blit::Font *ptr) {
+  return reinterpret_cast<int32_t>(ptr);
+}
+#else
+static std::unordered_map<int32_t, blit::Font *> font_ptrs;
+static std::unordered_map<blit::Font *, int32_t> font_wasm_ptrs;
+
+static blit::Font *get_font(int32_t ptr) {
+  return font_ptrs.at(ptr);
+}
+
+static int32_t get_wasm_pointer(blit::Font *ptr) {
+  auto it = font_wasm_ptrs.find(ptr);
+  if(it != font_wasm_ptrs.end())
+    return it->second;
+
+  static int32_t next_font_ptr = 1;
+
+  font_ptrs.emplace(next_font_ptr, ptr);
+  font_wasm_ptrs.emplace(ptr, next_font_ptr);
+  return next_font_ptr++;
+}
+#endif
 
 #ifdef TARGET_32BLIT_HW
 static blit::Surface *get_surface(int32_t ptr) {
@@ -96,8 +124,6 @@ static int Surface_get_cols(int32_t _this) {
 }
 
 static int32_t Surface_load_string(void *filename) {
-  blit::debugf("SURFACE_LOAD_STRING %s\n", filename);
-  //abort();
   return get_wasm_pointer(blit::Surface::load(reinterpret_cast<const char *>(filename)));
 }
 
@@ -151,6 +177,14 @@ static void Surface_line(int32_t _this, int32_t p1_x, int32_t p1_y, int32_t p2_x
 
 static void Surface_triangle(int32_t _this, int32_t p1_x, int32_t p1_y, int32_t p2_x, int32_t p2_y, int32_t p3_x, int32_t p3_y) {
   get_surface(_this)->triangle({p1_x, p1_y}, {p2_x, p2_y}, {p3_x, p3_y});
+}
+
+static void Surface_text_string_Font_Rect_int_int(int32_t _this, void *message, int32_t font, int32_t r_x, int32_t r_y, int32_t r_w, int32_t r_h, int variable, int align) {
+  get_surface(_this)->text(reinterpret_cast<const char *>(message), *get_font(font), {r_x, r_y, r_w, r_h}, variable, static_cast<blit::TextAlign>(align));
+}
+
+static void Surface_text_string_Font_Point_int_int(int32_t _this, void *message, int32_t font, int32_t p_x, int32_t p_y, int variable, int align) {
+  get_surface(_this)->text(reinterpret_cast<const char *>(message), *get_font(font), {p_x, p_y}, variable, static_cast<blit::TextAlign>(align));
 }
 
 static void Surface_blit(int32_t _this, int32_t src, int32_t r_x, int32_t r_y, int32_t r_w, int32_t r_h, int32_t p_x, int32_t p_y, int hflip) {
@@ -231,8 +265,22 @@ static int32_t get_screen() {
   return screen_ptr;
 }
 
+void maybe_set_global(wasm3::module *mod, const char *name, int32_t val) {
+  auto global = m3_FindGlobal(mod->get(), name);
+  if(!global)
+    return;
+  
+  M3TaggedValue tag_val{c_m3Type_i32, val};
+  m3_SetGlobal(global, &tag_val);
+}
+
 void link_blit_bindings(wasm3::module *mod) {
   mod->link_optional("*", "get_screen", get_screen);
+
+  // hmm, these are const
+  maybe_set_global(mod, "blit.outline_font", get_wasm_pointer(const_cast<blit::Font *>(&blit::outline_font)));
+  maybe_set_global(mod, "blit.fat_font", get_wasm_pointer(const_cast<blit::Font *>(&blit::fat_font)));
+  maybe_set_global(mod, "blit.minimal_font", get_wasm_pointer(const_cast<blit::Font *>(&blit::minimal_font)));
 
   // mostly auto-generated
   mod->link_optional("*", "Surface_set_clip", Surface_set_clip);
@@ -264,6 +312,8 @@ void link_blit_bindings(wasm3::module *mod) {
   mod->link_optional("*", "Surface_circle", Surface_circle);
   mod->link_optional("*", "Surface_line", Surface_line);
   mod->link_optional("*", "Surface_triangle", Surface_triangle);
+  mod->link_optional("*", "Surface_text_string_Font_Rect_int_int", Surface_text_string_Font_Rect_int_int);
+  mod->link_optional("*", "Surface_text_string_Font_Point_int_int", Surface_text_string_Font_Point_int_int);
   mod->link_optional("*", "Surface_blit", Surface_blit);
   mod->link_optional("*", "Surface_stretch_blit", Surface_stretch_blit);
   mod->link_optional("*", "Surface_stretch_blit_vspan", Surface_stretch_blit_vspan);
