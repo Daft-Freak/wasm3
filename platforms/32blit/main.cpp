@@ -24,6 +24,8 @@ wasm3::module *mod = nullptr;
 wasm3::function *renderFn;
 wasm3::function *updateFn;
 
+IM3Global blit_buttons_global = nullptr;
+
 void init()
 {
     runtime = new wasm3::runtime(env.new_runtime(1024));
@@ -53,6 +55,8 @@ void init()
     renderFn = new wasm3::function(runtime->find_function("render"));
     updateFn = new wasm3::function(runtime->find_function("update"));
 
+    blit_buttons_global = m3_FindGlobal(mod->get(), "blit.buttons");
+
     blit::set_screen_mode(blit::ScreenMode::hires);
 
     runtime->find_function("init").call<int>();
@@ -75,6 +79,11 @@ void init()
 void update(uint32_t time)
 {
     blit::ScopedProfilerProbe scopedProbe(profilerUpdateProbe);
+
+    if(blit_buttons_global) {
+        M3TaggedValue val{c_m3Type_i32, blit::buttons.state};
+        m3_SetGlobal(blit_buttons_global, &val);
+    }
 
     updateFn->call<int>(time);
 }
