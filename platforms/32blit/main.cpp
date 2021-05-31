@@ -7,7 +7,7 @@
 #include "assets.hpp"
 
 blit::Profiler profiler;
-blit::ProfilerProbe *profilerUpdateProbe, *profilerRenderProbe;
+blit::ProfilerProbe *profilerUpdateProbe, *profilerRenderProbe, *profilerGCProbe;
 
 void link_blit_bindings(wasm3::module *mod);
 
@@ -23,6 +23,8 @@ wasm3::module *mod = nullptr;
 std::vector<uint8_t> file_data;
 
 IM3Function render_fn, update_fn = nullptr;
+
+IM3Function collect_fn = nullptr; // AssemblyScript GC
 
 IM3Global blit_buttons_global = nullptr;
 IM3Global blit_buttons_pressed_global = nullptr;
@@ -57,6 +59,8 @@ void init()
     m3_FindFunction(&render_fn, runtime->get(), "render");
     m3_FindFunction(&update_fn, runtime->get(), "update");
 
+    m3_FindFunction(&collect_fn, runtime->get(), "__collect");
+
     blit_buttons_global = m3_FindGlobal(mod->get(), "blit.buttons");
     blit_buttons_pressed_global = m3_FindGlobal(mod->get(), "blit.buttons_pressed");
     blit_buttons_released_global = m3_FindGlobal(mod->get(), "blit.buttons_released");
@@ -80,6 +84,7 @@ void init()
 
     profilerUpdateProbe = profiler.add_probe("Update", 300);
     profilerRenderProbe = profiler.add_probe("Render", 300);
+    profilerGCProbe = profiler.add_probe("GC", 300);
 }
 
 void update(uint32_t time)
@@ -116,6 +121,13 @@ void render(uint32_t time)
         m3_Call(render_fn, 1, args);
     }
     profilerRenderProbe->store_elapsed_us();
+
+    // force GC
+    if(collect_fn) {
+        profilerGCProbe->start();
+        m3_Call(collect_fn, 0, nullptr);
+        profilerGCProbe->store_elapsed_us();
+    }
 
     profiler.set_graph_time(profilerRenderProbe->elapsed_metrics().uMaxElapsedUs);
     profiler.display_probe_overlay(1);
