@@ -20,6 +20,7 @@ void wasm_abort(void *message, void *file_name, int32_t line_number, int32_t col
 wasm3::environment env;
 wasm3::runtime *runtime;
 wasm3::module *mod = nullptr;
+std::vector<uint8_t> file_data;
 
 IM3Function render_fn, update_fn = nullptr;
 
@@ -30,8 +31,6 @@ IM3Global blit_buttons_released_global = nullptr;
 void init()
 {
     runtime = new wasm3::runtime(env.new_runtime(1024));
-
-    std::vector<uint8_t> file_data;
 
     auto launch_path = blit::get_launch_path();
     if(launch_path)
