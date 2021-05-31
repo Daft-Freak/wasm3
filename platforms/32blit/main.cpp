@@ -21,8 +21,7 @@ wasm3::environment env;
 wasm3::runtime *runtime;
 wasm3::module *mod = nullptr;
 
-wasm3::function *renderFn;
-wasm3::function *updateFn;
+IM3Function render_fn, update_fn = nullptr;
 
 IM3Global blit_buttons_global = nullptr;
 IM3Global blit_buttons_pressed_global = nullptr;
@@ -54,8 +53,10 @@ void init()
 
     link_blit_bindings(mod);
 
-    renderFn = new wasm3::function(runtime->find_function("render"));
-    updateFn = new wasm3::function(runtime->find_function("update"));
+    IM3Function init_fn = nullptr;
+    m3_FindFunction(&init_fn, runtime->get(), "init");
+    m3_FindFunction(&render_fn, runtime->get(), "render");
+    m3_FindFunction(&update_fn, runtime->get(), "update");
 
     blit_buttons_global = m3_FindGlobal(mod->get(), "blit.buttons");
     blit_buttons_pressed_global = m3_FindGlobal(mod->get(), "blit.buttons_pressed");
@@ -63,7 +64,9 @@ void init()
 
     blit::set_screen_mode(blit::ScreenMode::hires);
 
-    runtime->find_function("init").call<int>();
+
+    if(init_fn)
+        m3_Call(init_fn, 0, nullptr);
 
     // profiler
     profiler.set_display_size(blit::screen.bounds.w, blit::screen.bounds.h);
@@ -99,14 +102,20 @@ void update(uint32_t time)
         m3_SetGlobal(blit_buttons_released_global, &val);
     }
 
-    updateFn->call<int>(time);
+    if(update_fn) {
+        const void *args[] = {reinterpret_cast<const void *>(&time)};
+        m3_Call(update_fn, 1, args);
+    }
 }
 
 void render(uint32_t time)
 {
     //blit::ScopedProfilerProbe scopedProbe(profilerRenderProbe);
     profilerRenderProbe->start();
-    renderFn->call<int>(time);
+    if(render_fn) {
+        const void *args[] = {reinterpret_cast<const void *>(&time)};
+        m3_Call(render_fn, 1, args);
+    }
     profilerRenderProbe->store_elapsed_us();
 
     profiler.set_graph_time(profilerRenderProbe->elapsed_metrics().uMaxElapsedUs);

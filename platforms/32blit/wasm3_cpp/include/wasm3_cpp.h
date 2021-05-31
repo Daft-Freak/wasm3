@@ -225,6 +225,9 @@ namespace wasm3 {
          */
         function find_function(const char *name);
 
+        //
+        IM3Runtime get() {return m_runtime.get();}
+
     protected:
         friend class environment;
 
