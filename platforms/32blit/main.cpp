@@ -17,6 +17,10 @@ void wasm_abort(void *message, void *file_name, int32_t line_number, int32_t col
     blit::debugf("Abort!\n");
 }
 
+double wasm_seed() {
+    return blit::random();
+}
+
 wasm3::environment env;
 wasm3::runtime *runtime;
 wasm3::module *mod = nullptr;
@@ -50,7 +54,9 @@ void init()
 
     runtime->load(*mod);
 
+    // helpers for AssemblyScript
     mod->link_optional("env", "abort", wasm_abort);
+    mod->link_optional("env", "seed", wasm_seed);
 
     link_blit_bindings(mod);
 
