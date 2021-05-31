@@ -6,8 +6,10 @@
 #include "wasm3_cpp.h"
 #include "assets.hpp"
 
+#ifdef PROFILER
 blit::Profiler profiler;
 blit::ProfilerProbe *profilerUpdateProbe, *profilerRenderProbe, *profilerGCProbe;
+#endif
 
 void link_blit_bindings(wasm3::module *mod);
 
@@ -78,6 +80,7 @@ void init()
         m3_Call(init_fn, 0, nullptr);
 
     // profiler
+#ifdef PROFILER
     profiler.set_display_size(blit::screen.bounds.w, blit::screen.bounds.h);
     profiler.set_rows(5);
     profiler.set_alpha(200);
@@ -91,11 +94,14 @@ void init()
     profilerUpdateProbe = profiler.add_probe("Update", 300);
     profilerRenderProbe = profiler.add_probe("Render", 300);
     profilerGCProbe = profiler.add_probe("GC", 300);
+#endif
 }
 
 void update(uint32_t time)
 {
+#ifdef PROFILER
     blit::ScopedProfilerProbe scopedProbe(profilerUpdateProbe);
+#endif
 
     if(blit_buttons_global) {
         M3TaggedValue val{c_m3Type_i32, blit::buttons.state};
@@ -120,21 +126,32 @@ void update(uint32_t time)
 
 void render(uint32_t time)
 {
-    //blit::ScopedProfilerProbe scopedProbe(profilerRenderProbe);
+#ifdef PROFILER
     profilerRenderProbe->start();
+#endif
+
     if(render_fn) {
         const void *args[] = {reinterpret_cast<const void *>(&time)};
         m3_Call(render_fn, 1, args);
     }
+#ifdef PROFILER
     profilerRenderProbe->store_elapsed_us();
+#endif
 
     // force GC
     if(collect_fn) {
+#ifdef PROFILER
         profilerGCProbe->start();
+#endif
         m3_Call(collect_fn, 0, nullptr);
+
+#ifdef PROFILER
         profilerGCProbe->store_elapsed_us();
+#endif
     }
 
+#ifdef PROFILER
     profiler.set_graph_time(profilerRenderProbe->elapsed_metrics().uMaxElapsedUs);
     profiler.display_probe_overlay(1);
+#endif
 }
