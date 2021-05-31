@@ -25,6 +25,8 @@ wasm3::function *renderFn;
 wasm3::function *updateFn;
 
 IM3Global blit_buttons_global = nullptr;
+IM3Global blit_buttons_pressed_global = nullptr;
+IM3Global blit_buttons_released_global = nullptr;
 
 void init()
 {
@@ -56,6 +58,8 @@ void init()
     updateFn = new wasm3::function(runtime->find_function("update"));
 
     blit_buttons_global = m3_FindGlobal(mod->get(), "blit.buttons");
+    blit_buttons_pressed_global = m3_FindGlobal(mod->get(), "blit.buttons_pressed");
+    blit_buttons_released_global = m3_FindGlobal(mod->get(), "blit.buttons_released");
 
     blit::set_screen_mode(blit::ScreenMode::hires);
 
@@ -83,6 +87,16 @@ void update(uint32_t time)
     if(blit_buttons_global) {
         M3TaggedValue val{c_m3Type_i32, blit::buttons.state};
         m3_SetGlobal(blit_buttons_global, &val);
+    }
+
+    if(blit_buttons_pressed_global) {
+        M3TaggedValue val{c_m3Type_i32, blit::buttons.pressed};
+        m3_SetGlobal(blit_buttons_pressed_global, &val);
+    }
+
+    if(blit_buttons_released_global) {
+        M3TaggedValue val{c_m3Type_i32, blit::buttons.released};
+        m3_SetGlobal(blit_buttons_released_global, &val);
     }
 
     updateFn->call<int>(time);
