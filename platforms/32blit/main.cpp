@@ -11,7 +11,7 @@ blit::Profiler profiler;
 blit::ProfilerProbe *profilerUpdateProbe, *profilerRenderProbe, *profilerGCProbe;
 #endif
 
-void link_blit_bindings(wasm3::module *mod);
+void link_blit_bindings(IM3Module mod);
 
 // abort
 void wasm_abort(void *message, void *file_name, int32_t line_number, int32_t column_number) {
@@ -60,7 +60,7 @@ void init()
     mod->link_optional("env", "abort", wasm_abort);
     mod->link_optional("env", "seed", wasm_seed);
 
-    link_blit_bindings(mod);
+    link_blit_bindings(mod->get());
 
     IM3Function init_fn = nullptr;
     m3_FindFunction(&init_fn, runtime->get(), "init");

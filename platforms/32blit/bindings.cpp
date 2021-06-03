@@ -1,7 +1,6 @@
 #include <unordered_map>
 
-#define NO_DEFINITIONS
-#include "wasm3_cpp.h"
+#include "wrap-helper.hpp"
 #include "32blit.hpp"
 
 // partially auto-generated
@@ -265,8 +264,8 @@ static int32_t get_screen() {
   return screen_ptr;
 }
 
-void maybe_set_global(wasm3::module *mod, const char *name, int32_t val) {
-  auto global = m3_FindGlobal(mod->get(), name);
+void maybe_set_global(IM3Module mod, const char *name, int32_t val) {
+  auto global = m3_FindGlobal(mod, name);
   if(!global)
     return;
   
@@ -274,8 +273,16 @@ void maybe_set_global(wasm3::module *mod, const char *name, int32_t val) {
   m3_SetGlobal(global, &tag_val);
 }
 
-void link_blit_bindings(wasm3::module *mod) {
-  mod->link_optional("*", "get_screen", get_screen);
+template<typename Ret, typename ... Args>
+void link_function(IM3Module module, const char *module_name, const char *function_name, const char *sig, Ret (*function)(Args...)) {
+  auto res =  m3_LinkRawFunctionEx(module, module_name, function_name, sig, &wrap_helper<Ret(Args...)>::wrap_fn, reinterpret_cast<void*>(function));
+
+  if(res != m3Err_none && res != m3Err_functionLookupFailed)
+    blit::debugf("Error linking function \"%s\": %s\n", function_name, res);
+}
+
+void link_blit_bindings(IM3Module mod) {
+  link_function(mod, "*", "get_screen", "i()", get_screen);
 
   // hmm, these are const
   maybe_set_global(mod, "blit.outline_font", get_wasm_pointer(const_cast<blit::Font *>(&blit::outline_font)));
@@ -283,53 +290,53 @@ void link_blit_bindings(wasm3::module *mod) {
   maybe_set_global(mod, "blit.minimal_font", get_wasm_pointer(const_cast<blit::Font *>(&blit::minimal_font)));
 
   // mostly auto-generated
-  mod->link_optional("*", "Surface_set_clip", Surface_set_clip);
-  mod->link_optional("*", "Surface_get_alpha", Surface_get_alpha);
-  mod->link_optional("*", "Surface_set_alpha", Surface_set_alpha);
-  mod->link_optional("*", "Surface_set_pen", Surface_set_pen);
-  mod->link_optional("*", "Surface_get_format", Surface_get_format);
-  mod->link_optional("*", "Surface_get_pixel_stride", Surface_get_pixel_stride);
-  mod->link_optional("*", "Surface_get_row_stride", Surface_get_row_stride);
-  mod->link_optional("*", "Surface_get_mask", Surface_get_mask);
-  mod->link_optional("*", "Surface_set_mask", Surface_set_mask);
-  mod->link_optional("*", "Surface_get_sprites", Surface_get_sprites);
-  mod->link_optional("*", "Surface_set_sprites", Surface_set_sprites);
-  mod->link_optional("*", "Surface_get_transparent_index", Surface_get_transparent_index);
-  mod->link_optional("*", "Surface_set_transparent_index", Surface_set_transparent_index);
-  mod->link_optional("*", "Surface_get_rows", Surface_get_rows);
-  mod->link_optional("*", "Surface_get_cols", Surface_get_cols);
-  mod->link_optional("*", "Surface_load_string", Surface_load_string);
-  mod->link_optional("*", "Surface_save", Surface_save);
-  mod->link_optional("*", "Surface_offset_Rect", Surface_offset_Rect);
-  mod->link_optional("*", "Surface_offset_Point", Surface_offset_Point);
-  mod->link_optional("*", "Surface_offset_int32_t_int32_t", Surface_offset_int32_t_int32_t);
-  mod->link_optional("*", "Surface_generate_mipmaps", Surface_generate_mipmaps);
-  mod->link_optional("*", "Surface_clear", Surface_clear);
-  mod->link_optional("*", "Surface_pixel", Surface_pixel);
-  mod->link_optional("*", "Surface_v_span", Surface_v_span);
-  mod->link_optional("*", "Surface_h_span", Surface_h_span);
-  mod->link_optional("*", "Surface_rectangle", Surface_rectangle);
-  mod->link_optional("*", "Surface_circle", Surface_circle);
-  mod->link_optional("*", "Surface_line", Surface_line);
-  mod->link_optional("*", "Surface_triangle", Surface_triangle);
-  mod->link_optional("*", "Surface_text_string_Font_Rect_int_int", Surface_text_string_Font_Rect_int_int);
-  mod->link_optional("*", "Surface_text_string_Font_Point_int_int", Surface_text_string_Font_Point_int_int);
-  mod->link_optional("*", "Surface_blit", Surface_blit);
-  mod->link_optional("*", "Surface_stretch_blit", Surface_stretch_blit);
-  mod->link_optional("*", "Surface_stretch_blit_vspan", Surface_stretch_blit_vspan);
-  mod->link_optional("*", "Surface_watermark", Surface_watermark);
-  mod->link_optional("*", "Surface_blit_sprite", Surface_blit_sprite);
-  mod->link_optional("*", "Surface_stretch_blit_sprite", Surface_stretch_blit_sprite);
-  mod->link_optional("*", "Surface_sprite_Rect_Point_int", Surface_sprite_Rect_Point_int);
-  mod->link_optional("*", "Surface_sprite_Point_Point_int", Surface_sprite_Point_Point_int);
-  mod->link_optional("*", "Surface_sprite_int_Point_int", Surface_sprite_int_Point_int);
-  mod->link_optional("*", "Surface_sprite_Rect_Point_Point_int", Surface_sprite_Rect_Point_Point_int);
-  mod->link_optional("*", "Surface_sprite_Point_Point_Point_int", Surface_sprite_Point_Point_Point_int);
-  mod->link_optional("*", "Surface_sprite_int_Point_Point_int", Surface_sprite_int_Point_Point_int);
-  mod->link_optional("*", "Surface_sprite_Rect_Point_Point_Vec2_int", Surface_sprite_Rect_Point_Point_Vec2_int);
-  mod->link_optional("*", "Surface_sprite_Point_Point_Point_Vec2_int", Surface_sprite_Point_Point_Point_Vec2_int);
-  mod->link_optional("*", "Surface_sprite_int_Point_Point_Vec2_int", Surface_sprite_int_Point_Point_Vec2_int);
-  mod->link_optional("*", "Surface_sprite_Rect_Point_Point_float_int", Surface_sprite_Rect_Point_Point_float_int);
-  mod->link_optional("*", "Surface_sprite_Point_Point_Point_float_int", Surface_sprite_Point_Point_Point_float_int);
-  mod->link_optional("*", "Surface_sprite_int_Point_Point_float_int", Surface_sprite_int_Point_Point_float_int);
+  link_function(mod, "*", "Surface_set_clip", "v(iiiii)", Surface_set_clip);
+  link_function(mod, "*", "Surface_get_alpha", "i()", Surface_get_alpha);
+  link_function(mod, "*", "Surface_set_alpha", "v(ii)", Surface_set_alpha);
+  link_function(mod, "*", "Surface_set_pen", "v(iiiii)", Surface_set_pen);
+  link_function(mod, "*", "Surface_get_format", "i()", Surface_get_format);
+  link_function(mod, "*", "Surface_get_pixel_stride", "i()", Surface_get_pixel_stride);
+  link_function(mod, "*", "Surface_get_row_stride", "i()", Surface_get_row_stride);
+  link_function(mod, "*", "Surface_get_mask", "i()", Surface_get_mask);
+  link_function(mod, "*", "Surface_set_mask", "v(ii)", Surface_set_mask);
+  link_function(mod, "*", "Surface_get_sprites", "i()", Surface_get_sprites);
+  link_function(mod, "*", "Surface_set_sprites", "v(ii)", Surface_set_sprites);
+  link_function(mod, "*", "Surface_get_transparent_index", "i()", Surface_get_transparent_index);
+  link_function(mod, "*", "Surface_set_transparent_index", "v(ii)", Surface_set_transparent_index);
+  link_function(mod, "*", "Surface_get_rows", "i()", Surface_get_rows);
+  link_function(mod, "*", "Surface_get_cols", "i()", Surface_get_cols);
+  link_function(mod, "*", "Surface_load_string", "i(*)", Surface_load_string);
+  link_function(mod, "*", "Surface_save", "i(i*)", Surface_save);
+  link_function(mod, "*", "Surface_offset_Rect", "i(iiiii)", Surface_offset_Rect);
+  link_function(mod, "*", "Surface_offset_Point", "i(iii)", Surface_offset_Point);
+  link_function(mod, "*", "Surface_offset_int32_t_int32_t", "i(iii)", Surface_offset_int32_t_int32_t);
+  link_function(mod, "*", "Surface_generate_mipmaps", "v(ii)", Surface_generate_mipmaps);
+  link_function(mod, "*", "Surface_clear", "v(i)", Surface_clear);
+  link_function(mod, "*", "Surface_pixel", "v(iii)", Surface_pixel);
+  link_function(mod, "*", "Surface_v_span", "v(iiii)", Surface_v_span);
+  link_function(mod, "*", "Surface_h_span", "v(iiii)", Surface_h_span);
+  link_function(mod, "*", "Surface_rectangle", "v(iiiii)", Surface_rectangle);
+  link_function(mod, "*", "Surface_circle", "v(iiii)", Surface_circle);
+  link_function(mod, "*", "Surface_line", "v(iiiii)", Surface_line);
+  link_function(mod, "*", "Surface_triangle", "v(iiiiiii)", Surface_triangle);
+  link_function(mod, "*", "Surface_text_string_Font_Rect_int_int", "v(i*iiiiiii)", Surface_text_string_Font_Rect_int_int);
+  link_function(mod, "*", "Surface_text_string_Font_Point_int_int", "v(i*iiiii)", Surface_text_string_Font_Point_int_int);
+  link_function(mod, "*", "Surface_blit", "v(iiiiiiiii)", Surface_blit);
+  link_function(mod, "*", "Surface_stretch_blit", "v(iiiiiiiiii)", Surface_stretch_blit);
+  link_function(mod, "*", "Surface_stretch_blit_vspan", "v(iiiiiiii)", Surface_stretch_blit_vspan);
+  link_function(mod, "*", "Surface_watermark", "v(i)", Surface_watermark);
+  link_function(mod, "*", "Surface_blit_sprite", "v(iiiiiiii)", Surface_blit_sprite);
+  link_function(mod, "*", "Surface_stretch_blit_sprite", "v(iiiiiiiiii)", Surface_stretch_blit_sprite);
+  link_function(mod, "*", "Surface_sprite_Rect_Point_int", "v(iiiiiiii)", Surface_sprite_Rect_Point_int);
+  link_function(mod, "*", "Surface_sprite_Point_Point_int", "v(iiiiii)", Surface_sprite_Point_Point_int);
+  link_function(mod, "*", "Surface_sprite_int_Point_int", "v(iiiii)", Surface_sprite_int_Point_int);
+  link_function(mod, "*", "Surface_sprite_Rect_Point_Point_int", "v(iiiiiiiiii)", Surface_sprite_Rect_Point_Point_int);
+  link_function(mod, "*", "Surface_sprite_Point_Point_Point_int", "v(iiiiiiii)", Surface_sprite_Point_Point_Point_int);
+  link_function(mod, "*", "Surface_sprite_int_Point_Point_int", "v(iiiiiii)", Surface_sprite_int_Point_Point_int);
+  link_function(mod, "*", "Surface_sprite_Rect_Point_Point_Vec2_int", "v(iiiiiiiiiffi)", Surface_sprite_Rect_Point_Point_Vec2_int);
+  link_function(mod, "*", "Surface_sprite_Point_Point_Point_Vec2_int", "v(iiiiiiiffi)", Surface_sprite_Point_Point_Point_Vec2_int);
+  link_function(mod, "*", "Surface_sprite_int_Point_Point_Vec2_int", "v(iiiiiiffi)", Surface_sprite_int_Point_Point_Vec2_int);
+  link_function(mod, "*", "Surface_sprite_Rect_Point_Point_float_int", "v(iiiiiiiiifi)", Surface_sprite_Rect_Point_Point_float_int);
+  link_function(mod, "*", "Surface_sprite_Point_Point_Point_float_int", "v(iiiiiiifi)", Surface_sprite_Point_Point_Point_float_int);
+  link_function(mod, "*", "Surface_sprite_int_Point_Point_float_int", "v(iiiiiifi)", Surface_sprite_int_Point_Point_float_int);
 }
