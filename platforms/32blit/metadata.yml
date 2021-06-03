@@ -1,0 +1,12 @@
+title: Wasm3
+description: Port of a fast WebAssembly interpreter.
+author: Daft_Freak
+splash:
+  file: assets/no-image.png
+icon:
+  file: assets/no-icon.png
+version: v0.4.9-b
+category: engine
+#url: https://github.com/Daft-Freak/
+filetypes:
+  - wasm
