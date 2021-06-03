@@ -4,7 +4,6 @@
 #include "engine/profiler.hpp"
 
 #include "wasm3_cpp.h"
-#include "assets.hpp"
 
 #ifdef PROFILER
 blit::Profiler profiler;
@@ -50,9 +49,8 @@ void init()
             mod = new wasm3::module(env.parse_module(file_data.data(), file_data.size()));
     }
 
-    // fallback
     if(!mod)
-        mod = new wasm3::module(env.parse_module(test_wasm, test_wasm_length));
+        return;
 
     runtime->load(*mod);
 
