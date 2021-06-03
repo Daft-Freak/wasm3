@@ -378,7 +378,7 @@ namespace wasm3 {
         M3Function *m_func = nullptr;
     };
 
-#ifdef NO_DEFINITIONS
+#ifndef NO_DEFINITIONS
     runtime environment::new_runtime(size_t stack_size_bytes) {
         return runtime(m_env, stack_size_bytes);
     }
