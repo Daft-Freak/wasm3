@@ -3,7 +3,8 @@
 #include "32blit.hpp"
 #include "engine/profiler.hpp"
 
-#include "wasm3_cpp.h"
+#include "wasm3.h"
+#include "wrap-helper.hpp"
 
 #ifdef PROFILER
 blit::Profiler profiler;
@@ -22,9 +23,9 @@ double wasm_seed() {
     return blit::random();
 }
 
-wasm3::environment env;
-wasm3::runtime *runtime;
-wasm3::module *mod = nullptr;
+IM3Environment env = nullptr;
+IM3Runtime runtime = nullptr;
+IM3Module mod = nullptr;
 std::vector<uint8_t> file_data;
 
 IM3Function render_fn, update_fn = nullptr;
@@ -37,7 +38,9 @@ IM3Global blit_buttons_released_global = nullptr;
 
 void init()
 {
-    runtime = new wasm3::runtime(env.new_runtime(1024));
+    env = m3_NewEnvironment();
+
+    runtime = m3_NewRuntime(env, 1024, nullptr);
 
     auto launch_path = blit::get_launch_path();
     if(launch_path)
@@ -46,30 +49,30 @@ void init()
         file_data.resize(file.get_length());
 
         if(file.read(0, file_data.size(), reinterpret_cast<char *>(file_data.data())) == file_data.size())
-            mod = new wasm3::module(env.parse_module(file_data.data(), file_data.size()));
+            m3_ParseModule(env, &mod, file_data.data(), file_data.size());
     }
 
     if(!mod)
         return;
 
-    runtime->load(*mod);
+    m3_LoadModule(runtime, mod);
 
     // helpers for AssemblyScript
-    mod->link_optional("env", "abort", wasm_abort);
-    mod->link_optional("env", "seed", wasm_seed);
+    m3_LinkRawFunctionEx(mod, "env", "abort", "v(**ii)", &wrap_helper<decltype(wasm_abort)>::wrap_fn, reinterpret_cast<void*>(wasm_abort));
+    m3_LinkRawFunctionEx(mod, "env", "seed", "F()", &wrap_helper<decltype(wasm_seed)>::wrap_fn, reinterpret_cast<void*>(wasm_seed));
 
-    link_blit_bindings(mod->get());
+    link_blit_bindings(mod);
 
     IM3Function init_fn = nullptr;
-    m3_FindFunction(&init_fn, runtime->get(), "init");
-    m3_FindFunction(&render_fn, runtime->get(), "render");
-    m3_FindFunction(&update_fn, runtime->get(), "update");
+    m3_FindFunction(&init_fn, runtime, "init");
+    m3_FindFunction(&render_fn, runtime, "render");
+    m3_FindFunction(&update_fn, runtime, "update");
 
-    m3_FindFunction(&collect_fn, runtime->get(), "__collect");
+    m3_FindFunction(&collect_fn, runtime, "__collect");
 
-    blit_buttons_global = m3_FindGlobal(mod->get(), "blit.buttons");
-    blit_buttons_pressed_global = m3_FindGlobal(mod->get(), "blit.buttons_pressed");
-    blit_buttons_released_global = m3_FindGlobal(mod->get(), "blit.buttons_released");
+    blit_buttons_global = m3_FindGlobal(mod, "blit.buttons");
+    blit_buttons_pressed_global = m3_FindGlobal(mod, "blit.buttons_pressed");
+    blit_buttons_released_global = m3_FindGlobal(mod, "blit.buttons_released");
 
     if(init_fn)
         m3_Call(init_fn, 0, nullptr);
