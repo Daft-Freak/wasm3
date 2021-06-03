@@ -32,6 +32,10 @@ IM3Function render_fn, update_fn = nullptr;
 
 IM3Function collect_fn = nullptr; // AssemblyScript GC
 
+IM3Global blit_buttons_global = nullptr;
+IM3Global blit_buttons_pressed_global = nullptr;
+IM3Global blit_buttons_released_global = nullptr;
+
 void init()
 {
     env = m3_NewEnvironment();
@@ -66,6 +70,10 @@ void init()
 
     m3_FindFunction(&collect_fn, runtime, "__collect");
 
+    blit_buttons_global = m3_FindGlobal(mod, "blit.buttons");
+    blit_buttons_pressed_global = m3_FindGlobal(mod, "blit.buttons_pressed");
+    blit_buttons_released_global = m3_FindGlobal(mod, "blit.buttons_released");
+
     if(init_fn)
         m3_Call(init_fn, 0, nullptr);
 
@@ -92,6 +100,21 @@ void update(uint32_t time)
 #ifdef PROFILER
     blit::ScopedProfilerProbe scopedProbe(profilerUpdateProbe);
 #endif
+
+    if(blit_buttons_global) {
+        M3TaggedValue val{c_m3Type_i32, blit::buttons.state};
+        m3_SetGlobal(blit_buttons_global, &val);
+    }
+
+    if(blit_buttons_pressed_global) {
+        M3TaggedValue val{c_m3Type_i32, blit::buttons.pressed};
+        m3_SetGlobal(blit_buttons_pressed_global, &val);
+    }
+
+    if(blit_buttons_released_global) {
+        M3TaggedValue val{c_m3Type_i32, blit::buttons.released};
+        m3_SetGlobal(blit_buttons_released_global, &val);
+    }
 
     if(update_fn) {
         const void *args[] = {reinterpret_cast<const void *>(&time)};
