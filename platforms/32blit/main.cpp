@@ -73,9 +73,6 @@ void init()
     blit_buttons_pressed_global = m3_FindGlobal(mod->get(), "blit.buttons_pressed");
     blit_buttons_released_global = m3_FindGlobal(mod->get(), "blit.buttons_released");
 
-    blit::set_screen_mode(blit::ScreenMode::hires);
-
-
     if(init_fn)
         m3_Call(init_fn, 0, nullptr);
 
@@ -133,6 +130,12 @@ void render(uint32_t time)
     if(render_fn) {
         const void *args[] = {reinterpret_cast<const void *>(&time)};
         m3_Call(render_fn, 1, args);
+    } else {
+        blit::screen.pen = {0, 0, 0};
+        blit::screen.clear();
+
+        blit::screen.pen = {0xFF, 0xFF, 0xFF};
+        blit::screen.text("No render function!", blit::minimal_font, {0, 0});
     }
 #ifdef PROFILER
     profilerRenderProbe->store_elapsed_us();
