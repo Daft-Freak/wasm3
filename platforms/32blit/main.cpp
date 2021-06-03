@@ -11,6 +11,8 @@ blit::Profiler profiler;
 blit::ProfilerProbe *profilerUpdateProbe, *profilerRenderProbe, *profilerGCProbe;
 #endif
 
+void link_blit_bindings(IM3Module mod);
+
 // abort
 void wasm_abort(void *message, void *file_name, int32_t line_number, int32_t column_number) {
     // do something
@@ -54,6 +56,8 @@ void init()
     // helpers for AssemblyScript
     m3_LinkRawFunctionEx(mod, "env", "abort", "v(**ii)", &wrap_helper<decltype(wasm_abort)>::wrap_fn, reinterpret_cast<void*>(wasm_abort));
     m3_LinkRawFunctionEx(mod, "env", "seed", "F()", &wrap_helper<decltype(wasm_seed)>::wrap_fn, reinterpret_cast<void*>(wasm_seed));
+
+    link_blit_bindings(mod);
 
     IM3Function init_fn = nullptr;
     m3_FindFunction(&init_fn, runtime, "init");
